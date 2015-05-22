@@ -1,0 +1,162 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
+#include <netdb.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/wait.h>
+#include <signal.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
+#include <arpa/inet.h>
+#include <pthread.h>
+#include <time.h>       /* time */
+#include "awget.h"
+#define BACKLOG 10 // how many pending connections queue will hold
+#define MAXDATASIZE 1000 // max number of bytes we can get at once
+
+
+void * receiveMessage(void * buffer)
+ {
+
+    //get incoming buffer
+    const char *read_buffer = (char *) buffer;
+    printf("Serialized chain: %s\n",buffer);
+
+ }
+Chain * derializeChain(const *buffer){
+	char *chain_url_in;
+	char *number_ofss;
+	uint8_t url_Len = buffer[0];
+
+	int seeker = 0;
+
+	strncat(chain_url_in, buffer[1], url_Len);
+	return newChain();
+
+}
+void sigchld_handler(int s)
+{
+	while(wait(NULL) > 0);
+}
+int main(int argc, char *argv[])
+{
+//set up connection
+ int sockfd, new_fd,ret, numbytes; // listen on sock_fd, new connection on new_fd
+ struct sockaddr_in my_addr; // my address information
+ struct sockaddr_in their_addr; // connector’s address information
+ pthread_t rThread;
+ int sin_size;
+ struct sigaction sa;
+ int yes=1;
+
+ if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+ {
+    perror("socket");
+    exit(1);
+ }
+
+ if (setsockopt(sockfd,SOL_SOCKET,SO_REUSEADDR,&yes,sizeof(int)) == -1)
+ {
+    perror("setsockopt");
+    exit(1);
+ }
+
+ char szHostName[255];
+
+ gethostname(szHostName, 255);
+ struct hostent *host_entry;
+ host_entry=gethostbyname(szHostName);
+ char * szLocalIP;
+ szLocalIP = inet_ntoa (*(struct in_addr *)*host_entry->h_addr_list);
+
+int port_number = 0;
+if(argv[1] == "-p"){
+ port_number = argv[2];
+}
+
+ my_addr.sin_family = AF_INET; // host byte order
+ my_addr.sin_port = htons(port_number); // short, network byte order
+ my_addr.sin_addr.s_addr = INADDR_ANY; // automatically fill with my IP
+
+ bzero(&(my_addr.sin_zero), 8); // zero the rest of the struct
+ if (bind(sockfd, (struct sockaddr *)&my_addr, sizeof(struct sockaddr))== -1)
+ {
+    perror("bind");
+    exit(1);
+ }
+ 
+
+
+ if (listen(sockfd, BACKLOG) == -1)
+ {
+    perror("listen");
+    exit(1);
+ }
+//print address and port listining on
+struct sockaddr_in sin;
+socklen_t len = sizeof(sin);
+if (getsockname(sockfd, (struct sockaddr *)&sin, &len) == -1)
+    perror("getsockname");
+else
+ printf("awaiting connection on IP: %s port: %d\n",szLocalIP,ntohs(sin.sin_port));
+
+ sa.sa_handler = sigchld_handler; // reap all dead processes
+ sigemptyset(&sa.sa_mask);
+ sa.sa_flags = SA_RESTART;
+
+ if (sigaction(SIGCHLD, &sa, NULL) == -1)
+ {
+    perror("sigaction");
+    exit(1);
+ }
+    while(1) { // main accept() loop
+		sin_size = sizeof(struct sockaddr_in);
+		if ((new_fd = accept(sockfd, (struct sockaddr *)&their_addr,&sin_size)) == -1)
+		{
+			perror("accept");
+			continue;
+		}
+		else{
+			printf("server: got connection from %s\n",inet_ntoa(their_addr.sin_addr));
+
+		}
+		//into listening mode
+		int ret;
+		char buffer[MAXDATASIZE+1];
+
+		memset(buffer, 0, MAXDATASIZE);
+		ret = recvfrom(new_fd, buffer, MAXDATASIZE+1, 0, NULL, NULL);
+		    	if (ret < 0)
+		        {
+		            printf("Error receiving data!\n");
+		        }
+		        else
+		        {
+		        	printf("Serialized chain: %s\n",buffer);
+		        }
+		    	close(new_fd); // parent doesn’t need this
+		//create passing buffer for the thread
+		char *passing_buffer = buffer;
+
+		ret = pthread_create(&rThread, NULL, receiveMessage, (void *) passing_buffer);
+                if (ret)
+                 {
+                    printf("ERROR: Return Code from pthread_create() is %d\n", ret);
+                    exit(1);  
+                 }
+
+	    }
+
+
+         //pthread_exit(NULL);
+
+        close(sockfd);
+        return 0;
+    }
+ 
+

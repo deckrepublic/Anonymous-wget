@@ -1,0 +1,20 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h> // string operations
+#include <stdint.h> // fixed width integers
+
+//linked list to hold ip address and its port number
+typedef struct item { 
+  uint8_t addressLen;   // this is an unsigned 8-bit integer 
+  char IP_address[256];
+  uint32_t port;        
+  struct item *next;
+} list;
+// main struct holds how many stepping stones and the linked list
+typedef struct chaingang { 
+  uint32_t num_ss;
+  uint8_t urlLen;   // this is an unsigned 8-bit integer 
+  char url[256];
+  list content;
+} Chain;
+

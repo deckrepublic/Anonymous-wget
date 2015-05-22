@@ -1,0 +1,12 @@
+*Spent so many hours on this hope it does well*
+
+Anonomous wget by Tyler Decker
+
+running $./ss will open a stepping stone server on any free port
+running $./ss -p <port number> will open a stepping stone on the dictated port
+
+running $./awget <URL> will use default chainfile and will grab file from the URL, if there is no file then index.html is returned
+running $./awget -c<chainfile> <URL> will load dictated chainfile and will grab file from the URL, if there is no file then index.html is returned
+
+type $ make to compile
+type $make clean to remove 
